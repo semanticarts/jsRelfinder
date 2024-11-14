@@ -1,0 +1,101 @@
+<html>
+    <head>
+        <script src="./__target__/relfinder.js"></script>          
+        
+    </head>
+    <body>
+        <b>
+            Here we go!<br>
+        </b>
+        <div id="output"></div>
+      <script>
+    let contentType = 'application/sparql-results+json';
+    let finalPathString = '';
+    let prefixesDict = {
+        'db': 'http://dbpedia.org/resource/',
+        'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        'skos': 'http://www.w3.org/2004/02/skos/core#'
+    };
+    var endpointURI ;
+    var ignored_props = ['http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://dbpedia.org/ontology/wikiPageWikiLink'];
+    var defaultGraphURI ='' ;
+    var maxDistance = 3;
+    var queryCounter = 0;
+    var queryStop = 100;
+
+let findInterveningNodes = function(endpoint,start,end,number,path_length, default_graph='') {
+    let endpointURI = 'http://dbpedia.org/sparql';
+    let defaultGraphURI = default_graph;
+    var maxDistance = path_length;
+    var first = start;
+    var second = end;
+    var sample_number = number ;
+    var queries = getQueries (first, second, maxDistance, sample_number, [], ['http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 'http://www.w3.org/2004/02/skos/core#subject'], true);
+    var path_count = 0;
+    var myOutputPaths = [] ;
+
+    finalPathString = '';
+    for (var distance = 1; distance < maxDistance + 1; distance++) {
+        for (var query of queries [distance]) {
+            if(queryCounter > queryStop){return;}
+            var result = executeSparqlQuery (query, endpointURI);
+            if(debug){console.log("RESULT: " + JSON.stringify(result))}
+            var paths = parse_triplestore_response (first, second, result);
+            if(debug){for (p in paths) {
+            console.log("PATH:   " + p.toString())
+            }}
+            myOutputPaths.push(print_paths (paths, path_count, ignored_props, finalPathString));
+            queryCounter += 1;
+            // path_count += len (paths);
+        }
+    }
+
+    console.log("start")
+    console.log("MYOUTPUTPATHS:  " + myOutputPaths); 
+    //document.getElementById('output_paths').innerText += myOutputPaths ;
+
+    console.log("FINALPATHSTRING:  " + finalPathString)
+    console.log('end')
+}
+      </script>
+<div>
+    <div>
+        <label for="endpoint">Endpoint</label>
+        <input id="endpoint" placeholder="SPARQL Endpoint..." value="http://dbpedia.org/sparql"/>
+    </div>
+    <div>
+        <label for="default_graph">Default Graph URI</label>
+        <input id="default_graph" value="http://dbpedia.org"/>
+    </div>    
+    <div>
+        <label for="start">Start IRI</label>
+        <input id="start" placeholder="Start IRI..." value="http://dbpedia.org/resource/Glasgow"/>
+    </div>
+    <div>
+        <label for="end">End IRI</label>
+        <input id="end" placeholder="Start IRI..." value="http://dbpedia.org/resource/Paisley" />
+    </div>
+    <div>
+        <label for="number">Number of samples</label>
+        <input id="number" placeholder="Number of samples..." value="10"/>
+    </div>
+    <div>
+        <label for="path_length">Max Path Length</label>
+        <input id="path_length" placeholder="Max Path Length..." value="4"/>
+    </div>   
+    <div>
+        <label for="run">RUN!</label>
+        <input id="run" type="button" onclick="findInterveningNodes = findInterveningNodes(document.getElementById('endpoint').value,
+                                                                                            document.getElementById('start').value,
+                                                                                            document.getElementById('end').value,
+                                                                                            document.getElementById('number').value,
+                                                                                            document.getElementById('path_length').value,
+                                                                                            document.getElementById('default_graph').value)
+                                                                                            "/>
+    </div>        
+</div>
+<div>
+    <textarea id="output_paths"></textarea>
+</div>
+    </body>
+</html>
